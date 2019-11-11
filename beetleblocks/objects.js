@@ -131,6 +131,7 @@ SpriteMorph.prototype.initBeetle = function () {
     this.beetle = new THREE.Object3D();
     this.beetle.name = 'beetle';
     this.beetle.color = new THREE.Color();
+    this.beetle.linewidth = 1;
     var material = new THREE.MeshLambertMaterial( { color: myself.color, transparent: true } );
 
     this.beetle.flying = false;
@@ -185,7 +186,7 @@ SpriteMorph.prototype.initBeetle = function () {
     loader.load('beetleblocks/assets/meshes/beetle-white.obj', function (object) {
             object.traverse(function (child) {
                 if (child instanceof THREE.Mesh) {
-                    child.material = new THREE.MeshBasicMaterial({ color: 0xEEEEEE })
+                    child.material = new THREE.MeshPhongMaterial({ color: 0xEEEEEE })
                 }
             });
             object.rotation.set(Math.PI, 0, -Math.PI / 2);
@@ -556,7 +557,20 @@ SpriteMorph.prototype.initBlocks = function () {
         spec: 'stop drawing',
         category: 'shapes'
     };
-
+    this.blocks.setLineWidth =
+    {
+        type: 'command',
+        spec: 'set line width to %n',
+        category: 'shapes',
+        defaults: ['1']
+    };
+    this.blocks.changeLineWidth =
+    {
+        type: 'command',
+        spec: 'change line width by %n',
+        category: 'shapes',
+        defaults: ['1']
+    };
     this.blocks.startExtrusion =
     {
         type: 'command',
@@ -733,13 +747,12 @@ SpriteMorph.prototype.blockTemplates = function (category) {
         blocks.push(block('text2D'));
         blocks.push(block('startDrawing'));
         blocks.push(block('stopDrawing'));
+        //blocks.push(block('setLineWidth'));
+        //blocks.push(block('changeLineWidth'));
         blocks.push(block('startExtrusion'));
         blocks.push(block('stopExtrusion'));
         blocks.push(block('setExtrusionDiameter'));
         blocks.push(block('changeExtrusionDiameter'));
-        //        blocks.push(block('startNegativeGeometry'));
-        //        blocks.push(block('stopNegativeGeometry'));
-
     } else if (cat === 'colors') {
         blocks.push(block('pickHue'));
         blocks.push('-');
@@ -754,8 +767,6 @@ SpriteMorph.prototype.blockTemplates = function (category) {
         blocks.push('-');
         blocks.push(block('receiveGo'));
         blocks.push(block('receiveKey'));
-        //        blocks.push(block('receiveClick')); // This should not be here, we have no sprites anymore!
-        blocks.push(block('receiveCondition'));
         blocks.push(block('receiveMessage'));
         blocks.push('-');
         blocks.push(block('doBroadcast'));
@@ -778,7 +789,6 @@ SpriteMorph.prototype.blockTemplates = function (category) {
         blocks.push(block('doReport'));
         blocks.push('-');
         blocks.push(block('doStopThis'));
-        blocks.push(block('doStopOthers'));
         blocks.push('-');
         blocks.push(block('doRun'));
         blocks.push(block('fork'));
@@ -834,7 +844,6 @@ SpriteMorph.prototype.blockTemplates = function (category) {
         }
 
     } else if (cat === 'operators') {
-
         blocks.push(block('reifyScript'));
         blocks.push(block('reifyReporter'));
         blocks.push(block('reifyPredicate'));

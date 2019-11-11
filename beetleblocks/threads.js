@@ -74,7 +74,7 @@ Process.prototype.setPosition = function (x, y, z) {
     y = Number(y);
     z = Number(z);
 
-    beetle.position.set(y, z, x); 
+    beetle.position.set(y, z, x);
 
     if (beetle.extruding) {
         this.addPointToExtrusion();
@@ -156,7 +156,7 @@ Process.prototype.changePositionBy = function (axis, dist) {
     if (startPoint.x != beetle.position.x) {
         beetle.applyCostume();
     }
-    
+
     stage.reRender();
 };
 
@@ -198,10 +198,13 @@ Process.prototype.pointTowards = function (x, y, z) {
 Process.prototype.addLineGeom = function (startPoint, endPoint) {
     var beetle = this.homeContext.receiver.beetle,
         stage = this.homeContext.receiver.parentThatIsA(StageMorph),
-        lineMaterial = new THREE.LineBasicMaterial({ color: beetle.color });
+        lineMaterial = new THREE.LineBasicMaterial({
+                    linewidth: beetle.linewidth,
+                    linecap: 'round',
+                    linejoin: 'round',
+                    color: beetle.color });
 
     if (beetle.drawStyle === 'curves') {
-
         // If this is the first segment, let's create an object and add the first point
         if (beetle.spline === null) {
             beetle.spline = {};
@@ -219,9 +222,8 @@ Process.prototype.addLineGeom = function (startPoint, endPoint) {
         beetle.spline.line.anchorPoints = beetle.spline.curve.points;
         beetle.spline.line.type = 'spline';
         stage.myObjects.add(beetle.spline.line);
-        
+
     } else {
-        
         // We don't care if there is no option selected, we start drawing lines by default
         // If this is the first segment, let's create an object and add the first point
         if (beetle.polyline === null) {
@@ -292,9 +294,9 @@ Process.prototype.rotate = function (axis, angle) {
 
 Process.prototype.cube = function (size) {
     var beetle = this.homeContext.receiver.beetle,
-        stage = this.homeContext.receiver.parentThatIsA(StageMorph), 
+        stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         size = Number(size) * beetle.multiplierScale;
-    
+
     this.addBoxGeom(size, size, size);
 
     stage.reRender();
@@ -302,12 +304,12 @@ Process.prototype.cube = function (size) {
 
 Process.prototype.cuboid = function (length, width, height) {
     var beetle = this.homeContext.receiver.beetle,
-        stage = this.homeContext.receiver.parentThatIsA(StageMorph), 
+        stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         length = Number(length) * beetle.multiplierScale,
         width = Number(width) * beetle.multiplierScale,
         height = Number(height) * beetle.multiplierScale;
 
-    this.addBoxGeom(width, height, length); 
+    this.addBoxGeom(width, height, length);
 
     stage.reRender();
 };
@@ -348,7 +350,7 @@ Process.prototype.addSphereGeom = function (diam, isExtrusionCap, material) {
 
     if (!sphereGeometry) {
         sphereGeometry = new THREE.SphereGeometry(
-                Math.abs(diam/2), 
+                Math.abs(diam/2),
                 isExtrusionCap ?  12: 16,
                 isExtrusionCap ?  6: 12);
 
@@ -358,7 +360,7 @@ Process.prototype.addSphereGeom = function (diam, isExtrusionCap, material) {
     sphere = new THREE.Mesh(sphereGeometry, material ? material : beetle.makeMaterial());
     sphere.position.copy(beetle.position);
     sphere.rotation.copy(beetle.rotation);
-    
+
     // If the diameter is negative, we carve a negative sphere
     stage.myObjects.add(sphere, diam < 0);
     stage.reRender();
@@ -368,7 +370,7 @@ Process.prototype.addSphereGeom = function (diam, isExtrusionCap, material) {
 
 Process.prototype.tube = function (length, outer, inner) {
     var beetle = this.homeContext.receiver.beetle,
-        stage = this.homeContext.receiver.parentThatIsA(StageMorph), 
+        stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         length = Number(length) * beetle.multiplierScale,
         outer = Number(outer) * beetle.multiplierScale,
         inner = Number(inner) * beetle.multiplierScale;
@@ -380,7 +382,7 @@ Process.prototype.tube = function (length, outer, inner) {
 
 Process.prototype.addTubeGeom = function (length, outer, inner) {
     var beetle = this.homeContext.receiver.beetle,
-        stage = this.homeContext.receiver.parentThatIsA(StageMorph), 
+        stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         tubeGeom = beetle.cache.findGeometry('tube', [length, outer, inner]),
         outerRadius, innerRadius, arcShape, holePath, tube;
 
@@ -389,23 +391,26 @@ Process.prototype.addTubeGeom = function (length, outer, inner) {
         innerRadius = inner/2;
 
         arcShape = new THREE.Shape();
-        arcShape.absarc(0, 0, outerRadius, 0, Math.PI * 2, false);
+        // We generate 23/24ths of an arc, then ask THREE.js to finish closing the path.
+        // If we try to create the full circle at once it doesn't actually close because
+        // of JS float imprecision.
+        arcShape.absarc(0, 0, outerRadius, 0, Math.PI * 2 * (23/24), false);
+        arcShape.closePath();
 
-        // ThreeJS r84 (maybe earlier) doesn't close circles unless they go
-        // over Math.PI * 2. Werid.
         holePath = new THREE.Path();
-        holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2.01, true);
+        holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2 * (23/24), false);
+        holePath.closePath();
         arcShape.holes.push(holePath);
 
         tubeGeom = new THREE.ExtrudeGeometry(
-                arcShape, 
-                { 
-                    amount: length, 
-                    steps: 1, 
-                    bevelEnabled: true, 
-                    bevelThickness: 0, 
-                    bevelSize: 0 
-                }); 
+                arcShape,
+                {
+                    depth: length,
+                    steps: 1,
+                    bevelEnabled: true,
+                    bevelThickness: 0.001, // There needs to be a bevel for the normals
+                    bevelSize: 0.001       // to be properly computed. Don't ask me why.
+                });
 
         tubeGeom.computeFaceNormals();
         tubeGeom.computeVertexNormals();
@@ -423,7 +428,7 @@ Process.prototype.addTubeGeom = function (length, outer, inner) {
 
 Process.prototype.text = function (textString, height, depth) {
     var beetle = this.homeContext.receiver.beetle,
-        stage = this.homeContext.receiver.parentThatIsA(StageMorph), 
+        stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         textGeometry = beetle.cache.findGeometry('text', [textString, height, depth]),
         height, depth, mesh;
 
@@ -431,7 +436,7 @@ Process.prototype.text = function (textString, height, depth) {
 
         height = Number(height) * beetle.multiplierScale;
         depth = Number(depth) * beetle.multiplierScale;
-            
+
         textGeometry = new THREE.TextGeometry(textString, { font: stage.font, size: height, height: depth });
 
         beetle.cache.addGeometry('text', textGeometry, [textString, height, depth]);
@@ -463,7 +468,7 @@ Process.prototype.startExtrusion = function (extrudeStyle) {
         beetle.extrudeStyle = extrudeStyle;
         beetle.extrusionPoints = [];
         beetle.startSphere = this.addSphereGeom(beetle.extrusionDiameter * beetle.multiplierScale, true);
-        this.addPointToExtrusion();
+        this.addPointToExtrusion(true);
     } else if (beetle.extrudeStyle != extrudeStyle) {
         this.stopExtrusion();
         this.startExtrusion(extrudeStyle);
@@ -486,7 +491,7 @@ Process.prototype.stopExtrusion = function () {
     stage.reRender();
 };
 
-Process.prototype.addPointToExtrusion = function () {
+Process.prototype.addPointToExtrusion = function (isFirst) {
     var beetle = this.homeContext.receiver.beetle,
         stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         p = new THREE.Vector3(),
@@ -515,30 +520,32 @@ Process.prototype.addPointToExtrusion = function () {
         stage.myObjects.add(beetle.extrusion);
     } else {
         // Cylinder and sphere strategy
-        distanceToLast = beetle.extrusionPoints[0].distanceTo(beetle.position);
+        if (!isFirst) {
+            distanceToLast = beetle.extrusionPoints[0].distanceTo(beetle.position);
 
-        geometry = new THREE.CylinderGeometry(
-            (beetle.extrusionDiameter / 2) * beetle.multiplierScale, //radiusTop
-            (beetle.extrusionDiameter / 2) * beetle.multiplierScale, //radiusBottom
-            distanceToLast, //height
-            12 // radiusSegments
-            );
-        
-        cylinder = new THREE.Mesh(geometry, beetle.startSphere.material); // reusing the same material speeds things up
-        cylinder.position.copy(beetle.position);
-        cylinder.rotation.copy(beetle.rotation);
-        cylinder.lookAt(beetle.extrusionPoints[0]);
-        cylinder.rotateX(-Math.PI/2);
-        cylinder.translateY(-distanceToLast/2);
+            geometry = new THREE.CylinderGeometry(
+                    (beetle.extrusionDiameter / 2) * beetle.multiplierScale, //radiusTop
+                    (beetle.extrusionDiameter / 2) * beetle.multiplierScale, //radiusBottom
+                    distanceToLast, //height
+                    12 // radiusSegments
+                    );
 
+            cylinder = new THREE.Mesh(geometry, beetle.startSphere.material); // reusing the same material speeds things up
+            cylinder.position.copy(beetle.position);
+            cylinder.rotation.copy(beetle.rotation);
+            cylinder.lookAt(beetle.extrusionPoints[0]);
+            cylinder.rotateX(-Math.PI/2);
+            cylinder.translateY(-distanceToLast/2);
+
+            stage.myObjects.add(cylinder);
+        }
         beetle.extrusionPoints[0] = p.copy(beetle.position);
 
         joint = new THREE.Mesh(beetle.startSphere.geometry, beetle.startSphere.material);
         joint.position.copy(beetle.position);
         joint.rotation.copy(beetle.rotation);
 
-        stage.myObjects.add(joint); 
-        stage.myObjects.add(cylinder); 
+        stage.myObjects.add(joint);
     }
 
     stage.reRender();
@@ -579,15 +586,19 @@ Process.prototype.stopDrawing = function () {
     beetle.polyline = null;
 };
 
-// Negative Geometry
-Process.prototype.startNegativeGeometry = function () {
+Process.prototype.setLineWidth = function (width) {
     var beetle = this.homeContext.receiver.beetle;
-    beetle.negative = true;
+    beetle.linewidth = Math.abs(width);
+    if (beetle.drawing) {
+        var drawStyle = [beetle.drawStyle];
+        this.stopDrawing();
+        this.startDrawing(drawStyle);
+    }
 };
 
-Process.prototype.stopNegativeGeometry = function () {
+Process.prototype.changeLineWidth = function (delta) {
     var beetle = this.homeContext.receiver.beetle;
-    beetle.negative = false;
+    this.setLineWidth(beetle.linewidth + delta);
 };
 
 Process.prototype.pickHue = function (value) {
