@@ -346,13 +346,26 @@ Process.prototype.addSphereGeom = function (diam, isExtrusionCap, material) {
     var beetle = this.homeContext.receiver.beetle,
         stage = this.homeContext.receiver.parentThatIsA(StageMorph),
         sphereGeometry = beetle.cache.findGeometry('sphere', [diam, isExtrusionCap]),
-        sphere;
+        sphere,
+        widthSegments,
+        heightSegments;
+
+    if (isExtrusionCap) {
+        widthSegments = 12;
+        heightSegments = 6;
+    } else if (diam < 0) {
+        widthSegments = 9;
+        heightSegments = 9;
+    } else {
+        widthSegments = 16;
+        heightSegments = 12;
+    }
 
     if (!sphereGeometry) {
         sphereGeometry = new THREE.SphereGeometry(
                 Math.abs(diam/2),
-                isExtrusionCap ?  12: 16,
-                isExtrusionCap ?  6: 12);
+                widthSegments,
+                heightSegments);
 
         beetle.cache.addGeometry('sphere', sphereGeometry, [diam, isExtrusionCap]);
     }
