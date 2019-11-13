@@ -22,6 +22,7 @@ THREE.Object3D.prototype.add = function (object, negative, scene) {
         this.originalAdd(object);
     } else {
         object.geometry.computeBoundingBox();
+        object.bsp = new ThreeBSP(object);
 
         var objectMin = new THREE.Vector3(
                 object.position.x + object.geometry.boundingBox.min.x,
@@ -53,7 +54,10 @@ THREE.Object3D.prototype.add = function (object, negative, scene) {
                         ),
                 victimBox = new THREE.Box3(victimMin, victimMax);
             if (victimBox.intersectsBox(objectBox)) {
-                mesh = threecsg.subtract(victim, object, object.material);
+                if (!victim.bsp) { victim.bsp = new ThreeBSP(victim) };
+                result = victim.bsp.subtract(object.bsp);
+                mesh = result.toMesh(victim.material);
+                mesh.bsp = result;
                 this.add(mesh, false);
                 this.remove(victim);
             }
