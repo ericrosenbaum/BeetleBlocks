@@ -1,12 +1,13 @@
 // Beetle Blocks cloud
 // Inspired in Snap! cloud
 
-function BeetleCloud (url) {
-    this.init(url);
+function BeetleCloud (url, ide) {
+    this.init(url, ide);
 };
 
-BeetleCloud.prototype.init = function (url) {
+BeetleCloud.prototype.init = function (url, ide) {
     this.url = url;
+    this.ide = ide;
     this.checkCredentials();
 };
 
@@ -152,10 +153,10 @@ BeetleCloud.prototype.shareProject = function (shareOrNot, projectName, callBack
             );
 };
 
-BeetleCloud.prototype.saveProject = function (ide, callBack, errorCall) {
+BeetleCloud.prototype.saveProject = function (ignorethis, discardthis, callBack, errorCall) {
     var myself = this;
 
-    ide.stage.reRender();
+    this.ide.stage.reRender();
 
     this.checkCredentials(
             function (user) {
@@ -163,18 +164,18 @@ BeetleCloud.prototype.saveProject = function (ide, callBack, errorCall) {
                     var pdata = ide.serializer.serialize(ide.stage);
                     // check if serialized data can be parsed back again
                     try {
-                        ide.serializer.parse(pdata);
+                        myself.ide.serializer.parse(pdata);
                     } catch (err) {
-                        ide.showMessage('Serialization of program data failed:\n' + err);
+                        myself.ide.showMessage('Serialization of program data failed:\n' + err);
                         throw new Error('Serialization of program data failed:\n' + err);
                     }
 
-                    ide.showMessage('Uploading project...'); 
+                    myself.ide.showMessage('Uploading project...'); 
 
                     //(path, body, callBack, errorCall, errorMsg)
                     myself.post(
                             '/projects/save?projectname='
-                            + encodeURIComponent(ide.projectName)
+                            + encodeURIComponent(myself.ide.projectName)
                             + '&username='
                             + encodeURIComponent(myself.username)
                             + '&ispublic=false', // path
