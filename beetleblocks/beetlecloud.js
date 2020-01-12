@@ -152,33 +152,19 @@ BeetleCloud.prototype.shareProject = function (shareOrNot, projectName, callBack
             );
 };
 
-BeetleCloud.prototype.saveProject = function (ide, callBack, errorCall) {
+BeetleCloud.prototype.saveProject = function (projectName, projectBody, callBack, errorCall) {
     var myself = this;
-
-    ide.stage.reRender();
-
     this.checkCredentials(
             function (user) {
                 if (user.username) {
-                    var pdata = ide.serializer.serialize(ide.stage);
-                    // check if serialized data can be parsed back again
-                    try {
-                        ide.serializer.parse(pdata);
-                    } catch (err) {
-                        ide.showMessage('Serialization of program data failed:\n' + err);
-                        throw new Error('Serialization of program data failed:\n' + err);
-                    }
-
-                    ide.showMessage('Uploading project...'); 
-
                     //(path, body, callBack, errorCall, errorMsg)
                     myself.post(
                             '/projects/save?projectname='
-                            + encodeURIComponent(ide.projectName)
+                            + encodeURIComponent(projectName)
                             + '&username='
                             + encodeURIComponent(myself.username)
                             + '&ispublic=false', // path
-                            pdata, // body
+                            projectBody, // body
                             callBack,
                             errorCall,
                             'Project could not be saved' // error message
