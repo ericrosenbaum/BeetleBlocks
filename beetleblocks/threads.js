@@ -410,10 +410,13 @@ Process.prototype.addTubeGeom = function (length, outer, inner) {
         arcShape.absarc(0, 0, outerRadius, 0, Math.PI * 2 * (23/24), false);
         arcShape.closePath();
 
-        holePath = new THREE.Path();
-        holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2 * (23/24), false);
-        holePath.closePath();
-        arcShape.holes.push(holePath);
+        // ( Chuck ) Only generate inner hole if nonzero value provided
+        if (Math.abs(inner) > 0) {
+            holePath = new THREE.Path();
+            holePath.absarc(0, 0, innerRadius, 0, Math.PI * 2 * (23/24), false);
+            holePath.closePath();
+            arcShape.holes.push(holePath);
+        }
 
         tubeGeom = new THREE.ExtrudeGeometry(
                 arcShape,
